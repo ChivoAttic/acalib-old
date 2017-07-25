@@ -5,6 +5,7 @@ from astropy.nddata import support_nddata, NDDataRef, NDData
 import numpy as np
 from acalib.upi import Data
 from astropy.table import Table
+from collections import namedtuple
 
 # TODO: This is non-generic. Try to use the UPI (it can be done!)
 @support_nddata
@@ -74,7 +75,6 @@ class RoiSE(Algorithm):
     ----------
     params : dict (default = None)
         Algorithm parameters, allowed keys:    
-        
         P : float (default = 0.05)
             Thresholding quantile for multiscale segmentation.
         PRECISION : float (default = 0.02)
@@ -84,12 +84,10 @@ class RoiSE(Algorithm):
         RANDOM_STATE : int (default = None)
             Seed for random smpling. 
 
-
     References
     ----------
-    
     .. [1] Araya, M., Candia, G., Gregorio, R., Mendoza, M., & Solar, M. (2016). Indexing data cubes for content-based searches in radio astronomy. Astronomy and Computing, 14, 23-34.
-    
+
     """
     def default_params(self):
         if 'P' not in self.config:
@@ -113,7 +111,7 @@ class RoiSE(Algorithm):
 
             Returns
             -------
-            :class:`~acalib.Container` with the cube slices, segmentated images and region of interest tables for each scale analyzed.
+            List of ROI with the cube slice, segmented images for each resolution and ROI table.
         """
 
         if isinstance(cube,NDData):
@@ -127,7 +125,8 @@ class RoiSE(Algorithm):
             wcs = None
 
 
-        c = acalib.Container()
+        c = []
+        ROI = namedtuple('RegionsOfInterest', ['cube_slice','segmented_images','table'])
         params = {"P":self.config["P"], "PRECISION":self.config["PRECISION"]}
         gms = GMS(params)
 
@@ -148,15 +147,13 @@ class RoiSE(Algorithm):
 
             table = measure_shape(pp_slice, labeled_images, freq_min, freq_max)
             if len(table) > 0:
-                c.tables.append(table)
-                c.images.append(pp_slice)
-                c.images.extend(labeled_images)
+                c.append(ROI(cube_slice=pp_slice, segmented_images=labeled_images,table=table))
 
         if wcs:
             wcs = wcs.dropaxis(2)
-            for i,im in enumerate(c.images):
-                c.images[i] = NDDataRef(data=im, wcs = wcs)
+            for i,roi in enumerate(c):
+                for j, im in enumerate(roi.segmented_images):
+                    c[i].segmented_images[j] = NDData(data=im, wcs = wcs)
 
-        c.images.insert(0, cube)
-        c.primary = c.images[0]
+
         return c

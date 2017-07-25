@@ -35,7 +35,6 @@ def download_and_load():
 
 class TestGMS(unittest.TestCase):
 	gms = acaalgo.GMS()
-	
 	data = download_and_load()
 	data = np.sum(data,axis=0)
 
@@ -56,8 +55,7 @@ class TestCF(unittest.TestCase):
 	def test_nddata_2d(self):
 		caa = self.cf.run(self.data2d)[0]
 		assert(caa.min() == 0)
-		assert(caa.max() == 3)		
-
+		assert(caa.max() == 3)
 
 class TestFW(unittest.TestCase):
 	fw = acaalgo.FellWalker()
@@ -93,16 +91,12 @@ class TestStacking(unittest.TestCase):
 	template = download_and_load()
 	template = np.sum(template,axis=0)
 
-	cont = acalib.Container()
-	cont.images.append(template)
-	cont.images.append(template)
-	cont.primary = cont.images[0]
-
+	imgs = [template,template]
 
 	#TODO make a better unit test
 	def test_run(self):
-		result = self.st.run(self.template,self.cont)
+		result = self.st.run(self.template,self.imgs)
 		np.testing.assert_equal(result.shape,(99,99))
 
 if __name__ == '__main__':
-    unittest.main()
+	unittest.main()
